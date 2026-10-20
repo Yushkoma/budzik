@@ -31,8 +31,8 @@ volatile uint8_t time_min = 0;
 volatile uint8_t time_hour = 0;
 
 uint8_t rtc_s = 10;
-uint8_t rtc_m = 48;
-uint8_t rtc_h = 2;
+uint8_t rtc_m = 32;
+uint8_t rtc_h = 0;
 
 char text[40] = "                     ";
 
@@ -55,7 +55,7 @@ int main(){
   init();
   rtc_set_time(rtc_h, rtc_m, rtc_s); // Ustawiamy czas na 00:00:00
   while (1){
-    _delay_ms(900);
+    _delay_ms(400);
     LCD_clear();
     LCD_line(0);
     LCD_text("Counting:");
