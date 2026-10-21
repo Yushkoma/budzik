@@ -5,19 +5,7 @@
 #include <string.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
-
-#ifndef BM
-#define BM(bit)        (1<<(bit))
-#endif
-#ifndef sbi
-#define sbi(reg,bit)    reg |= (BM(bit))
-#endif
-#ifndef cbi
-#define cbi(reg,bit)    reg &= ~(BM(bit))
-#endif
-#ifndef tbi
-#define tbi(reg,bit)    reg ^= (BM(bit))
-#endif
+#include "../macros.h"
 
 void I2C_init(void){
     cbi(TWSR, TWPS0); // Preskaler = 1
