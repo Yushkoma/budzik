@@ -38,8 +38,6 @@ void init(){
 
 int main(){
   init();
-  LiquidCrystalDisplay lcd(&PORTD, &DDRD, LCD_RS_PIN, LCD_E_PIN, LCD_DATA_PINS_OFFSET);
-  lcd.init();
 
   rtc_hour = (__TIME__[0] - '0') * 10 + (__TIME__[1] - '0');
   rtc_min = (__TIME__[3] - '0') * 10 + (__TIME__[4] - '0');
@@ -47,18 +45,24 @@ int main(){
   rtc_set_time(rtc_hour, rtc_min, rtc_sec);
   get_date_compilation();
   rtc_set_date(rtc_day, rtc_month, rtc_year);
+
+  LiquidCrystalDisplay lcd(&PORTD, &DDRD, LCD_RS_PIN, LCD_E_PIN, LCD_DATA_PINS_OFFSET);
+  lcd.init();
   lcd.clear();
   while (1){
-    _delay_ms(400);
-    lcd.LCD_line(0);
+    _delay_ms(50);
+    uint8_t second_last = rtc_sec;
     rtc_read_time(&rtc_hour, &rtc_min, &rtc_sec);
-    sprintf(text, "%02u:%02u:%02u   ", rtc_hour, rtc_min, rtc_sec);
-    lcd.send_text(text);
+    if (rtc_sec != second_last){
+      lcd.LCD_line(0);
+      sprintf(text, "%02u:%02u:%02u   ", rtc_hour, rtc_min, rtc_sec);
+      lcd.send_text(text);
 
-    lcd.LCD_line(1);
-    rtc_read_date(&rtc_day, &rtc_month, &rtc_year);
-    sprintf(text, "%02u.%02u.20%02u   ", rtc_day, rtc_month, rtc_year);
-    lcd.send_text("godzina"); 
+      lcd.LCD_line(1);
+      rtc_read_date(&rtc_day, &rtc_month, &rtc_year);
+      sprintf(text, "%02u.%02u.20%02u   ", rtc_day, rtc_month, rtc_year);
+      lcd.send_text(text); 
+    }
   }
 }
 
