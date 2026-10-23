@@ -8,6 +8,7 @@
 #include "src/RTC/RTC.h"
 #include "src/I2C/I2C.h"
 #include "src/macros.h"
+#include "src/speaker.h"
 
 // PD2 (A2) RS_PIN
 // PD3 (A3) E_PIN
@@ -30,7 +31,7 @@ char text[40] = "                     ";
 
 void init(){
   I2C_init();
-
+  speaker_init();
   sei();
 }
 
@@ -38,34 +39,42 @@ void init(){
 
 int main(){
   init();
-
+  /*
   rtc_hour = (__TIME__[0] - '0') * 10 + (__TIME__[1] - '0');
   rtc_min = (__TIME__[3] - '0') * 10 + (__TIME__[4] - '0');
   rtc_sec = (__TIME__[6] - '0') * 10 + (__TIME__[7] - '0');
   rtc_set_time(rtc_hour, rtc_min, rtc_sec);
   get_date_compilation();
-  rtc_set_date(rtc_day, rtc_month, rtc_year);
+  rtc_set_date(rtc_day, rtc_month, rtc_year);*/
 
   LiquidCrystalDisplay lcd(&PORTD, &DDRD, LCD_RS_PIN, LCD_E_PIN, LCD_DATA_PINS_OFFSET);
   lcd.init();
   lcd.clear();
+
   while (1){
     _delay_ms(50);
     uint8_t second_last = rtc_sec;
     rtc_read_time(&rtc_hour, &rtc_min, &rtc_sec);
     if (rtc_sec != second_last){
       lcd.LCD_line(0);
-      sprintf(text, "%02u:%02u:%02u   ", rtc_hour, rtc_min, rtc_sec);
+      sprintf(text, "%02u:%02u:%02u !8:00", rtc_hour, rtc_min, rtc_sec);
       lcd.send_text(text);
 
       lcd.LCD_line(1);
       rtc_read_date(&rtc_day, &rtc_month, &rtc_year);
       sprintf(text, "%02u.%02u.20%02u   ", rtc_day, rtc_month, rtc_year);
       lcd.send_text(text); 
+
+      if ((rtc_sec%2 == 0) and (rtc_min == 00) and (rtc_hour == 8)){
+        speaker_play(800);
+      } else {
+        speaker_stop();
+      }
     }
+
   }
 }
-
+/*
 void get_date_compilation(){
   rtc_year = (__DATE__[9] - '0') * 10 + (__DATE__[10] - '0');
 
@@ -99,3 +108,4 @@ void get_date_compilation(){
   }
 }
 
+*/
