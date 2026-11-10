@@ -17,8 +17,15 @@
 #define LCD_E_PIN       PD3 //A3
 #define LCD_DATA_PINS_OFFSET 4
 
-uint8_t alarm_hour = 8;
-uint8_t alarm_min = 15;
+
+struct alarm_time {
+    uint8_t hour;
+    uint8_t min;
+};
+
+struct alarm_time alarm[7] = {{8, 25}, {8, 25}, {10, 25}, {8, 30}, {8, 30}, {10, 00}, {21, 14}}; // Alarm times for each day of the week (0=Monday, 6=Sunday)
+uint8_t current_day_of_week = 0; // Current day of the week (0=Monday, 6=Sunday)
+uint8_t next_alarm_day = 0; // Last day of the week, initialized to an invalid value to ensure the first update occurs
 
 
 uint8_t sec = 0;
@@ -51,9 +58,13 @@ void init(){
   sbi(PORTB, 2); // Enable pull-up resistor on PB2 (pin 10)
 
   sbi(DDRB, 3); // Set PB3 (pin 11) as output for the green LED
+  //rtc_set_compilation_data(); // Set RTC to the compilation time of the code
+  rtc_set_week_day(6); // Set the day of the week to Monday (0)
 
-
-  set_compilation_time();
+  //rtc_read_time(&hour, &min, &sec);
+  rtc_read_date(&day, &month, &year);
+  current_day_of_week = rtc_get_week_day(); // Adjust to 0=Monday
+  next_alarm_day = current_day_of_week; // Initialize next_alarm_day to the current day
 }
 
 
@@ -74,14 +85,18 @@ int main(){
       speaker_check();
       if (button_60_sec_pressed_check()) {
         speaker_active = false;
+        speaker_play(600);
+        _delay_ms(200);
         speaker_stop();
       }
 
       if (checks_ticks_counter >= 5) { //update czasu i wyswietlacza co 50ms
         checks_ticks_counter = 0;
         if (second_changed_check()){
+          current_day_of_week = rtc_get_week_day();
           lcd_refresh(lcd);
-          if ((hour == alarm_hour) && (min == alarm_min) && (sec == 0)){
+
+          if ((hour == alarm[current_day_of_week].hour) && (min == alarm[current_day_of_week].min) && (sec == 0)){
             speaker_active = true;
           }
         }
@@ -119,7 +134,7 @@ unsigned long millis() {
 }
 
 bool second_changed_check(){
-  static uint8_t second_last = sec;
+  static uint8_t second_last = 0;
   rtc_read_time(&hour, &min, &sec);
   if (sec != second_last){
     second_last = sec;
@@ -129,13 +144,15 @@ bool second_changed_check(){
 }
 void lcd_refresh(LiquidCrystalDisplay &lcd){
     lcd.LCD_line(0);
-    sprintf(text, "%02u:%02u:%02u  &-8:00", hour, min, sec);
+    sprintf(text, "%02u:%02u:%02u()%02u:%02u", hour, min, sec, alarm[current_day_of_week].hour, alarm[current_day_of_week].min);
     lcd.send_text(text);
 
     lcd.LCD_line(1);
     rtc_read_date(&day, &month, &year);
     sprintf(text, "%02u.%02u.20%02u   ", day, month, year);
     lcd.send_text(text); 
+    lcd.send_text(get_day_of_week_string(current_day_of_week)); 
+
 }
 bool check_button() {
   static uint8_t history = 0xFF;
@@ -152,7 +169,7 @@ bool button_60_sec_pressed_check(){
 
   if (button_pressed && speaker_active) {
     press_ticks++;
-    if (press_ticks >= 6000) {
+    if (press_ticks >= 5000) {
       press_ticks = 0;
       return true;
     }
@@ -179,13 +196,13 @@ void speaker_check() {
         speaker_stop();
       } 
       else if (now - last_speaker_check >= 600) {
-        speaker_play(3000);
+        speaker_play(800);
       } 
       else if (now - last_speaker_check >= 300) {
         speaker_stop();
       }
       else {
-        speaker_play(3000);
+        speaker_play(800);
       }
     }
     else {
@@ -193,4 +210,15 @@ void speaker_check() {
     }
   }
 }
-
+char* get_day_of_week_string(uint8_t day_of_week) {
+    switch (day_of_week) {
+        case 0: return "Mon";
+        case 1: return "Tue";
+        case 2: return "Wed";
+        case 3: return "Thu";
+        case 4: return "Fri";
+        case 5: return "Sat";
+        case 6: return "Sun";
+        default: return "err";
+    }
+}

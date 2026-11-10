@@ -112,7 +112,7 @@ void get_date_compilation(uint8_t *day, uint8_t *month, uint8_t *year) {
   }
 }
 
-void set_compilation_time() {
+void rtc_set_compilation_data() {
   uint8_t hour, min, sec;
   uint8_t day, month, year;
   hour = (__TIME__[0] - '0') * 10 + (__TIME__[1] - '0');
@@ -121,4 +121,38 @@ void set_compilation_time() {
   rtc_set_time(hour, min, sec);
   get_date_compilation(&day, &month, &year);
   rtc_set_date(day, month, year);
+}
+
+void rtc_set_week_day(uint8_t day) {
+    // Zabezpieczenie przed wpisaniem wartości spoza zakresu (0-6)
+    if (day < 0) day = 0;
+    if (day > 6) day = 6;
+    day++; // RTC używa zakresu 1-7 dla dni tygodnia, więc dodajemy 1
+    I2C_start();
+    
+    I2C_send((RTC_ADDR << 1) | 0); // Tryb zapisu
+    I2C_send(0x03);                // Wskaźnik na rejestr 0x03 (Day)
+
+    I2C_send(decToBcd(day));       // Wysłanie dnia tygodnia
+    
+    I2C_stop();
+}
+
+uint8_t rtc_get_week_day(void) {
+    uint8_t day;
+    
+    I2C_start();
+    I2C_send((RTC_ADDR << 1) | 0); // Tryb zapisu (aby ustawić wskaźnik)
+    I2C_send(0x03);                // Wskaźnik na rejestr 0x03 (Day)
+    
+    I2C_start();                   // Repeated start
+    I2C_send((RTC_ADDR << 1) | 1); // Tryb odczytu
+
+    // Odczytujemy jeden bajt. Używamy 0 (NACK), bo to jedyny/ostatni odczytywany bajt.
+    // Maskujemy wartości do 3 najmłodszych bitów (0x07), by odfiltrować ewentualne śmieci.
+    day = bcdToDec(I2C_read(0) & 0x07); 
+    
+    I2C_stop();
+    
+    return day-1;
 }
